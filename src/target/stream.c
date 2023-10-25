@@ -18,6 +18,8 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <stumpless/target.h>
 #include <stumpless/target/stream.h>
 #include "private/config/locale/wrapper.h"
@@ -85,11 +87,31 @@ fail:
   return NULL;
 }
 
+int
+stumpless_set_severity_color( struct stream_target *target,
+                    enum stumpless_severity severity, 
+                    const char *escapecode ) {
+  free(target->severity_colors[severity]);
+  target->severity_colors[severity] = (char*) malloc(sizeof(char) * (strlen(escapecode) + 1));
+  strcpy(target->severity_colors[severity], escapecode);
+
+}
+
 /* private definitions */
+
+
+void
+set_default_severity_colors(struct stream_target *target) {
+  target->severity_colors[0] = (char *) malloc(sizeof(char) * 1);
+  strcpy(target->severity_colors[0], "\x1b[38;2;255;0;0m");
+  target->severity_colors[1] = (char *) malloc(sizeof(char) * 1);
+  strcpy(target->severity_colors[1], "\x1b[38;2;0;255;0m");
+}
 
 void
 destroy_stream_target( const struct stream_target *target ) {
   config_destroy_mutex( &target->stream_mutex );
+  free(target->severity_colors);
   free_mem( target );
 }
 
@@ -101,7 +123,8 @@ new_stream_target( FILE *stream ) {
   if( !target ) {
     return NULL;
   }
-
+  target->severity_colors = (char **) malloc(sizeof(char *) * 8);
+  set_default_severity_colors(target);
   config_init_mutex( &target->stream_mutex );
   target->stream = stream;
 
@@ -110,12 +133,21 @@ new_stream_target( FILE *stream ) {
 
 int
 sendto_stream_target( struct stream_target *target,
+                      const struct stumpless_entry *entry,    
                       const char *msg,
                       size_t msg_length ) {
   size_t fwrite_result;
+  enum stumpless_severity severity = entry->prival & 0x7;
 
   config_lock_mutex( &target->stream_mutex );
-  fwrite_result = fwrite( msg, sizeof( char ), msg_length, target->stream );
+  if(target->stream == stderr || target->stream == stdout) {
+    printf(target->severity_colors[severity]);
+    fwrite_result = fwrite( msg, sizeof( char ), msg_length, target->stream );
+    printf("\x1b[0m");
+  } else {
+    fwrite_result = fwrite( msg, sizeof( char ), msg_length, target->stream );
+  }
+  
   config_unlock_mutex( &target->stream_mutex );
 
   if( fwrite_result != msg_length ) {
@@ -128,3 +160,4 @@ write_failure:
   raise_stream_write_failure(  );
   return -1;
 }
+

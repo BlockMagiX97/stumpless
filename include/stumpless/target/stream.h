@@ -38,6 +38,7 @@
 #  include <stdio.h>
 #  include <stumpless/config.h>
 #  include <stumpless/target.h>
+#  include "private/target/stream.h"
 
 #  ifdef __cplusplus
 extern "C" {
@@ -153,6 +154,12 @@ stumpless_open_stdout_target( const char *name );
 STUMPLESS_PUBLIC_FUNCTION
 struct stumpless_target *
 stumpless_open_stream_target( const char *name, FILE *stream );
+
+STUMPLESS_PUBLIC_FUNCTION
+int
+stumpless_set_severity_color( struct stream_target *target,
+                    enum stumpless_severity severity, 
+                    const char *escapecode ); 
 
 #  ifdef __cplusplus
 }                               /* extern "C" */

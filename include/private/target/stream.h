@@ -30,6 +30,7 @@
 struct stream_target {
 /** The stream this target writes to. */
   FILE *stream;
+  char **severity_colors;
 #  ifdef STUMPLESS_THREAD_SAFETY_SUPPORTED
 /**
  * Protects stream. This mutex must be locked by a thread before it can write
@@ -44,6 +45,7 @@ destroy_stream_target( const struct stream_target *target );
 
 struct stream_target *
 new_stream_target( FILE *stream );
+
 
 /**
  * **Thread Safety: MT-Safe**
@@ -60,6 +62,7 @@ new_stream_target( FILE *stream );
  */
 int
 sendto_stream_target( struct stream_target *target,
+                      const struct stumpless_entry *entry, 
                       const char *msg,
                       size_t msg_length );
 
